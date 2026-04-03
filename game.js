@@ -2,12 +2,11 @@ const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    backgroundColor: '#1a1a1a', // Un fond gris foncé pour mieux voir
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1000 }, // Gravité un peu plus forte pour un jeu nerveux
-            debug: false 
+            gravity: { y: 1000 },
+            debug: false // Change en 'true' pour voir les boîtes de collision
         }
     },
     scene: { preload, create, update }
@@ -17,15 +16,10 @@ const game = new Phaser.Game(config);
 let player, cursors, platforms;
 
 function preload() {
-    // 1. Chargement de Kai
-    // On augmente frameWidth/Height car ton image est grande
-    this.load.spritesheet('kai', 'assets/kai.png', { 
-        frameWidth: 256, 
-        frameHeight: 256 
-    });
+    // 1. Charger Kai (le perso)
+    this.load.spritesheet('kai', 'assets/kai.png', { frameWidth: 256, frameHeight: 256 });
     
-    // 2. Chargement du Sol
-    // On divise ton image de sol géante en gros morceaux
+    // 2. Charger le sol (comme spritesheet pour découper)
     this.load.spritesheet('sol_lego', 'assets/sol.png', { 
         frameWidth: 256, 
         frameHeight: 256 
@@ -33,27 +27,34 @@ function preload() {
 }
 
 function create() {
+    // CORRECTION DU PROBLÈME FANTÔME : Ajouter une couleur de fond (ici, noir)
+    this.cameras.main.setBackgroundColor('#000000'); 
+
     // --- LES PLATEFORMES ---
     platforms = this.physics.add.staticGroup();
 
-    // On crée un sol large (10 blocs)
-    // .setScale(0.5) permet de réduire la brique géante pour qu'elle rentre dans l'écran
+    // Créer un sol large tout le long (10 blocs)
+    // On agrandit les blocs de 0.5 (Scale) pour qu'ils soient plus visibles
     for (let i = 0; i < 10; i++) {
-        platforms.create(i * 120, 560, 'sol_lego', 0).setScale(0.5).refreshBody(); 
+        platforms.create(i * 128, 560, 'sol_lego', 0).setScale(0.5).refreshBody(); 
     }
     
-    // Une plateforme en hauteur
-    platforms.create(600, 350, 'sol_lego', 1).setScale(0.4).refreshBody();
-    platforms.create(200, 250, 'sol_lego', 1).setScale(0.4).refreshBody();
+    // Quelques plateformes en l'air (on utilise la brique n°1 pour varier)
+    // CORRECTION : On utilise .setFrame(1) sur le StaticImage
+    let p1 = platforms.create(600, 350, 'sol_lego', 1);
+    p1.setScale(0.4).refreshBody();
+    
+    let p2 = platforms.create(200, 250, 'sol_lego', 1);
+    p2.setScale(0.4).refreshBody();
 
     // --- LE JOUEUR (KAI) ---
-    player = this.physics.add.sprite(100, 300, 'kai');
-    player.setScale(0.5); // On réduit Kai aussi pour qu'il soit proportionnel aux briques
+    // CORRECTION : On réduit Kai de 0.5 (Scale) pour qu'il ne soit pas géant
+    player = this.physics.add.sprite(100, 300, 'kai').setScale(0.5);
     player.setBounce(0.1);
     player.setCollideWorldBounds(true);
 
-    // --- ANIMATIONS ---
-    // Animation de course (on utilise les frames du spritesheet)
+    // --- ANIMATIONS DE KAI ---
+    // Animation de course
     this.anims.create({
         key: 'run',
         frames: this.anims.generateFrameNumbers('kai', { start: 1, end: 4 }),
@@ -61,15 +62,17 @@ function create() {
         repeat: -1
     });
 
-    // Animation d'attente
+    // Animation d'attente (Idle)
     this.anims.create({
         key: 'idle',
         frames: [{ key: 'kai', frame: 0 }],
         frameRate: 10
     });
 
-    // --- LOGIQUE ---
+    // --- LOGIQUE (Collisions) ---
     this.physics.add.collider(player, platforms);
+
+    // --- CONTRÔLES (Clavier) ---
     cursors = this.input.keyboard.createCursorKeys();
 }
 
@@ -77,12 +80,12 @@ function update() {
     // Contrôles Gauche / Droite
     if (cursors.left.isDown) {
         player.setVelocityX(-250);
-        player.flipX = true; // Regarde à gauche
+        player.flipX = true; // Oriente le perso à gauche
         player.anims.play('run', true);
     } 
     else if (cursors.right.isDown) {
         player.setVelocityX(250);
-        player.flipX = false; // Regarde à droite
+        player.flipX = false; // Oriente le perso à droite
         player.anims.play('run', true);
     } 
     else {
@@ -90,8 +93,8 @@ function update() {
         player.anims.play('idle');
     }
 
-    // Saut (Flèche du haut)
+    // Saut (Flèche du haut) - uniquement s'il touche le sol
     if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-600);
+        player.setVelocityY(-600); // Impulsion vers le haut
     }
 }
