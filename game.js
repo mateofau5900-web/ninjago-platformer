@@ -2,10 +2,11 @@ const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    backgroundColor: '#1a1a1a', // Un fond gris foncé pour mieux voir
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 800 },
+            gravity: { y: 1000 }, // Gravité un peu plus forte pour un jeu nerveux
             debug: false 
         }
     },
@@ -16,35 +17,43 @@ const game = new Phaser.Game(config);
 let player, cursors, platforms;
 
 function preload() {
-    // Perso Kai
-    this.load.spritesheet('kai', 'assets/kai.png', { frameWidth: 64, frameHeight: 64 });
+    // 1. Chargement de Kai
+    // On augmente frameWidth/Height car ton image est grande
+    this.load.spritesheet('kai', 'assets/kai.png', { 
+        frameWidth: 256, 
+        frameHeight: 256 
+    });
     
-    // Le sol découpé en briques de 64x64
+    // 2. Chargement du Sol
+    // On divise ton image de sol géante en gros morceaux
     this.load.spritesheet('sol_lego', 'assets/sol.png', { 
-        frameWidth: 64, 
-        frameHeight: 64 
+        frameWidth: 256, 
+        frameHeight: 256 
     });
 }
 
 function create() {
-    // 1. Les plateformes
+    // --- LES PLATEFORMES ---
     platforms = this.physics.add.staticGroup();
 
-    // On crée un sol tout le long du bas de l'écran (ex: 10 briques)
-    for (let i = 0; i < 13; i++) {
-        platforms.create(i * 64, 568, 'sol_lego', 0); 
+    // On crée un sol large (10 blocs)
+    // .setScale(0.5) permet de réduire la brique géante pour qu'elle rentre dans l'écran
+    for (let i = 0; i < 10; i++) {
+        platforms.create(i * 120, 560, 'sol_lego', 0).setScale(0.5).refreshBody(); 
     }
     
-    // Quelques plateformes en l'air (on utilise la brique n°1 pour varier)
-    platforms.create(600, 400, 'sol_lego', 1); 
-    platforms.create(200, 300, 'sol_lego', 1);
+    // Une plateforme en hauteur
+    platforms.create(600, 350, 'sol_lego', 1).setScale(0.4).refreshBody();
+    platforms.create(200, 250, 'sol_lego', 1).setScale(0.4).refreshBody();
 
-    // 2. Création de Kai
-    player = this.physics.add.sprite(100, 450, 'kai');
+    // --- LE JOUEUR (KAI) ---
+    player = this.physics.add.sprite(100, 300, 'kai');
+    player.setScale(0.5); // On réduit Kai aussi pour qu'il soit proportionnel aux briques
     player.setBounce(0.1);
     player.setCollideWorldBounds(true);
 
-    // 3. Animations de Kai
+    // --- ANIMATIONS ---
+    // Animation de course (on utilise les frames du spritesheet)
     this.anims.create({
         key: 'run',
         frames: this.anims.generateFrameNumbers('kai', { start: 1, end: 4 }),
@@ -52,28 +61,28 @@ function create() {
         repeat: -1
     });
 
+    // Animation d'attente
     this.anims.create({
         key: 'idle',
         frames: [{ key: 'kai', frame: 0 }],
         frameRate: 10
     });
 
-    // 4. Collisions (IMPORTANT : Kai ne traverse pas le sol)
+    // --- LOGIQUE ---
     this.physics.add.collider(player, platforms);
-
-    // 5. Contrôles
     cursors = this.input.keyboard.createCursorKeys();
-} // <--- L'accolade est bien ICI maintenant, à la fin du create
+}
 
 function update() {
+    // Contrôles Gauche / Droite
     if (cursors.left.isDown) {
-        player.setVelocityX(-200);
-        player.flipX = true;
+        player.setVelocityX(-250);
+        player.flipX = true; // Regarde à gauche
         player.anims.play('run', true);
     } 
     else if (cursors.right.isDown) {
-        player.setVelocityX(200);
-        player.flipX = false;
+        player.setVelocityX(250);
+        player.flipX = false; // Regarde à droite
         player.anims.play('run', true);
     } 
     else {
@@ -81,7 +90,8 @@ function update() {
         player.anims.play('idle');
     }
 
+    // Saut (Flèche du haut)
     if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-500);
+        player.setVelocityY(-600);
     }
 }
