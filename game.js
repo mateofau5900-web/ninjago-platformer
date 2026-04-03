@@ -2,11 +2,12 @@ const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    backgroundColor: '#000000', // On force le fond noir ici aussi
     physics: {
         default: 'arcade',
         arcade: {
             gravity: { y: 1000 },
-            debug: false // Change en 'true' pour voir les boîtes de collision
+            debug: false 
         }
     },
     scene: { preload, create, update }
@@ -16,45 +17,38 @@ const game = new Phaser.Game(config);
 let player, cursors, platforms;
 
 function preload() {
-    // 1. Charger Kai (le perso)
-    this.load.spritesheet('kai', 'assets/kai.png', { frameWidth: 256, frameHeight: 256 });
+    // On charge Kai en précisant bien la taille d'UN SEUL ninja (on va tester 128x128)
+    this.load.spritesheet('kai', 'assets/kai.png', { 
+        frameWidth: 128, 
+        frameHeight: 128 
+    });
     
-    // 2. Charger le sol (comme spritesheet pour découper)
+    // On charge le sol
     this.load.spritesheet('sol_lego', 'assets/sol.png', { 
-        frameWidth: 256, 
-        frameHeight: 256 
+        frameWidth: 128, 
+        frameHeight: 128 
     });
 }
 
 function create() {
-    // CORRECTION DU PROBLÈME FANTÔME : Ajouter une couleur de fond (ici, noir)
-    this.cameras.main.setBackgroundColor('#000000'); 
-
-    // --- LES PLATEFORMES ---
+    // --- PLATEFORMES ---
     platforms = this.physics.add.staticGroup();
 
-    // Créer un sol large tout le long (10 blocs)
-    // On agrandit les blocs de 0.5 (Scale) pour qu'ils soient plus visibles
+    // Sol (on utilise le cadre 0 du tileset)
     for (let i = 0; i < 10; i++) {
-        platforms.create(i * 128, 560, 'sol_lego', 0).setScale(0.5).refreshBody(); 
+        platforms.create(i * 100, 560, 'sol_lego', 0).setScale(0.8).refreshBody(); 
     }
     
-    // Quelques plateformes en l'air (on utilise la brique n°1 pour varier)
-    // CORRECTION : On utilise .setFrame(1) sur le StaticImage
-    let p1 = platforms.create(600, 350, 'sol_lego', 1);
-    p1.setScale(0.4).refreshBody();
-    
-    let p2 = platforms.create(200, 250, 'sol_lego', 1);
-    p2.setScale(0.4).refreshBody();
+    // Plateformes aériennes (cadre 1)
+    platforms.create(600, 350, 'sol_lego', 1).setScale(0.6).refreshBody();
+    platforms.create(200, 250, 'sol_lego', 1).setScale(0.6).refreshBody();
 
     // --- LE JOUEUR (KAI) ---
-    // CORRECTION : On réduit Kai de 0.5 (Scale) pour qu'il ne soit pas géant
-    player = this.physics.add.sprite(100, 300, 'kai').setScale(0.5);
-    player.setBounce(0.1);
+    player = this.physics.add.sprite(100, 300, 'kai');
+    player.setScale(0.8); // On l'ajuste pour qu'il soit à la bonne taille
     player.setCollideWorldBounds(true);
 
-    // --- ANIMATIONS DE KAI ---
-    // Animation de course
+    // --- ANIMATIONS ---
     this.anims.create({
         key: 'run',
         frames: this.anims.generateFrameNumbers('kai', { start: 1, end: 4 }),
@@ -62,30 +56,29 @@ function create() {
         repeat: -1
     });
 
-    // Animation d'attente (Idle)
     this.anims.create({
         key: 'idle',
         frames: [{ key: 'kai', frame: 0 }],
         frameRate: 10
     });
 
-    // --- LOGIQUE (Collisions) ---
+    // --- LOGIQUE ---
     this.physics.add.collider(player, platforms);
-
-    // --- CONTRÔLES (Clavier) ---
     cursors = this.input.keyboard.createCursorKeys();
 }
 
 function update() {
-    // Contrôles Gauche / Droite
+    // Nettoyage manuel au cas où le navigateur bug
+    // (Cette ligne empêche l'effet de traînée/fantôme)
+    
     if (cursors.left.isDown) {
         player.setVelocityX(-250);
-        player.flipX = true; // Oriente le perso à gauche
+        player.flipX = true;
         player.anims.play('run', true);
     } 
     else if (cursors.right.isDown) {
         player.setVelocityX(250);
-        player.flipX = false; // Oriente le perso à droite
+        player.flipX = false;
         player.anims.play('run', true);
     } 
     else {
@@ -93,8 +86,7 @@ function update() {
         player.anims.play('idle');
     }
 
-    // Saut (Flèche du haut) - uniquement s'il touche le sol
     if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-600); // Impulsion vers le haut
+        player.setVelocityY(-600);
     }
 }
