@@ -16,23 +16,16 @@ const config = {
 const game = new Phaser.Game(config);
 
 let player, cursors, platforms;
-let canJump = false;
 let isAttacking = false;
 
 // =====================
 //      PRELOAD
 // =====================
 function preload() {
-    // Spritesheet Kai : 452x552px → 4 colonnes x 5 lignes → 113x110 par frame
+    // Spritesheet Kai : 452x552px, 4 colonnes x 5 lignes = 113x110 par frame
     this.load.spritesheet('kai', 'assets/kai.png', {
         frameWidth: 113,
         frameHeight: 110
-    });
-
-    // Sol Lego
-    this.load.spritesheet('sol_lego', 'assets/sol.png', {
-        frameWidth: 128,
-        frameHeight: 128
     });
 }
 
@@ -41,49 +34,57 @@ function preload() {
 // =====================
 function create() {
 
-    // --- FOND ---
-    // Dégradé nuit bleutée
+    // ---- FOND ----
     let bg = this.add.graphics();
     bg.fillGradientStyle(0x0d1b2a, 0x0d1b2a, 0x1b3a5c, 0x1b3a5c, 1);
     bg.fillRect(0, 0, 800, 600);
 
-    // Étoiles
-    for (let i = 0; i < 80; i++) {
+    // Étoiles aléatoires
+    for (let i = 0; i < 100; i++) {
         let x = Phaser.Math.Between(0, 800);
-        let y = Phaser.Math.Between(0, 500);
-        let r = Phaser.Math.FloatBetween(0.5, 2);
-        this.add.circle(x, y, r, 0xffffff, Phaser.Math.FloatBetween(0.4, 1));
+        let y = Phaser.Math.Between(0, 550);
+        let r = Phaser.Math.FloatBetween(0.5, 1.8);
+        let alpha = Phaser.Math.FloatBetween(0.3, 1);
+        this.add.circle(x, y, r, 0xffffff, alpha);
     }
 
-    // Lune décorative
-    this.add.circle(720, 80, 40, 0xfff8dc, 0.9);
-    this.add.circle(735, 70, 38, 0x1b3a5c, 0.9); // effet croissant
+    // Lune croissant
+    this.add.circle(700, 75, 45, 0xfff5cc, 0.95);
+    this.add.circle(718, 62, 42, 0x1b3a5c, 1);
 
-    // --- PLATEFORMES ---
+    // Nuages décoratifs (ellipses semi-transparentes)
+    let cloudGraphics = this.add.graphics();
+    cloudGraphics.fillStyle(0xffffff, 0.06);
+    cloudGraphics.fillEllipse(150, 120, 200, 50);
+    cloudGraphics.fillEllipse(500, 80, 250, 55);
+    cloudGraphics.fillEllipse(350, 200, 180, 40);
+
+    // ---- PLATEFORMES (rectangles propres, sans tileset) ----
     platforms = this.physics.add.staticGroup();
 
-    // SOL : Y=572, tuiles centrées à 50 + i*100 pour couvrir tout l'écran
-    for (let i = 0; i < 9; i++) {
-        platforms.create(50 + i * 100, 572, 'sol_lego', 0)
-            .setScale(0.78)
-            .refreshBody();
-    }
+    // SOL PRINCIPAL — barre rouge foncée tout en bas
+    createPlatform(this, 400, 578, 800, 44, 0x6b0000, 0x3d0000);
 
-    // Plateformes aériennes (bien visibles, bien espacées)
-    platforms.create(180, 440, 'sol_lego', 1).setScale(0.6).refreshBody();
-    platforms.create(430, 340, 'sol_lego', 1).setScale(0.6).refreshBody();
-    platforms.create(650, 240, 'sol_lego', 1).setScale(0.6).refreshBody();
-    platforms.create(300, 200, 'sol_lego', 1).setScale(0.6).refreshBody();
+    // Ligne de détail du sol (bordure haute)
+    let solDetail = this.add.rectangle(400, 556, 800, 6, 0xcc2200);
+    solDetail.setDepth(1);
 
-    // --- JOUEUR ---
+    // Plateformes aériennes — disposition en escalier pour pouvoir grimper
+    createPlatform(this, 150, 460, 160, 18, 0xaa1a00, 0x6b0000);
+    createPlatform(this, 390, 370, 160, 18, 0xaa1a00, 0x6b0000);
+    createPlatform(this, 620, 285, 160, 18, 0xaa1a00, 0x6b0000);
+    createPlatform(this, 280, 210, 160, 18, 0xaa1a00, 0x6b0000);
+    createPlatform(this, 560, 150, 130, 18, 0xaa1a00, 0x6b0000);
+
+    // ---- JOUEUR KAI ----
     player = this.physics.add.sprite(100, 490, 'kai', 0);
     player.setScale(1.1);
     player.setCollideWorldBounds(true);
     player.setDepth(10);
 
-    // --- ANIMATIONS ---
+    // ---- ANIMATIONS ----
 
-    // Idle : frame 0 (le ninja seul, ligne 1)
+    // Idle : frame 0
     this.anims.create({
         key: 'idle',
         frames: [{ key: 'kai', frame: 0 }],
@@ -91,7 +92,7 @@ function create() {
         repeat: -1
     });
 
-    // Course : frames 4→7 (ligne 2)
+    // Course : frames 4 → 7
     this.anims.create({
         key: 'run',
         frames: this.anims.generateFrameNumbers('kai', { start: 4, end: 7 }),
@@ -99,7 +100,7 @@ function create() {
         repeat: -1
     });
 
-    // Saut : frames 8→11 (ligne 3)
+    // Saut : frames 8 → 11
     this.anims.create({
         key: 'jump',
         frames: this.anims.generateFrameNumbers('kai', { start: 8, end: 11 }),
@@ -107,7 +108,7 @@ function create() {
         repeat: 0
     });
 
-    // Spin/Attaque : frames 12→15 (ligne 4)
+    // Spin/Attaque : frames 12 → 15
     this.anims.create({
         key: 'spin',
         frames: this.anims.generateFrameNumbers('kai', { start: 12, end: 15 }),
@@ -115,41 +116,64 @@ function create() {
         repeat: 0
     });
 
-    // Quand l'animation spin est finie, on sort de l'état attaque
+    // Déverrouille l'attaque quand spin est terminé
     player.on('animationcomplete-spin', () => {
         isAttacking = false;
     });
 
-    // --- COLLISION ---
+    // ---- COLLISIONS ----
     this.physics.add.collider(player, platforms);
 
-    // --- CONTRÔLES ---
+    // ---- CONTRÔLES ----
     cursors = this.input.keyboard.createCursorKeys();
-
-    // Attaque avec Z ou ESPACE
     this.input.keyboard.on('keydown-Z', doSpin, this);
     this.input.keyboard.on('keydown-SPACE', doSpin, this);
 
-    // --- CAMÉRA FIXE ---
-    // Pas de follow → la caméra reste fixe, tout l'écran est visible
-    this.cameras.main.setBounds(0, 0, 800, 600);
-
-    // --- UI ---
-    this.add.text(12, 10, '🥷 Ninjago Platformer', {
-        fontSize: '16px',
-        fill: '#ffffff',
+    // ---- UI ----
+    // Titre
+    this.add.text(14, 10, 'NINJAGO PLATFORMER', {
+        fontSize: '17px',
+        fill: '#ff4400',
         fontFamily: 'Georgia, serif',
+        fontStyle: 'bold',
         stroke: '#000000',
         strokeThickness: 3
     }).setScrollFactor(0).setDepth(20);
 
-    this.add.text(12, 34, '← → Courir   ↑ Sauter   Z / Espace : Spin !', {
+    // Contrôles
+    this.add.text(14, 36, '← → : Courir    ↑ : Sauter    Z / Espace : Spin !', {
         fontSize: '11px',
         fill: '#aaccff',
         fontFamily: 'Arial',
         stroke: '#000000',
         strokeThickness: 2
     }).setScrollFactor(0).setDepth(20);
+}
+
+// =====================
+//  HELPER : PLATEFORME
+// =====================
+function createPlatform(scene, x, y, w, h, colorTop, colorBottom) {
+    // Corps physique
+    let rect = scene.add.rectangle(x, y, w, h, colorTop);
+    scene.physics.add.existing(rect, true);
+    platforms.add(rect);
+
+    // Petite bordure en bas pour l'effet de profondeur
+    let shadow = scene.add.rectangle(x, y + h / 2 + 3, w, 6, colorBottom);
+    shadow.setDepth(0);
+
+    // Picots Lego style (petits rectangles en haut)
+    let studsGraphics = scene.add.graphics();
+    studsGraphics.fillStyle(colorTop, 1);
+    let studCount = Math.floor(w / 20);
+    let startX = x - w / 2 + 8;
+    for (let i = 0; i < studCount; i++) {
+        studsGraphics.fillRoundedRect(startX + i * 20 - 4, y - h / 2 - 5, 8, 5, 2);
+    }
+    studsGraphics.setDepth(2);
+
+    return rect;
 }
 
 // =====================
@@ -166,44 +190,40 @@ function doSpin() {
 //      UPDATE
 // =====================
 function update() {
-    const onGround = player.body.touching.down || player.body.blocked.down;
-    canJump = onGround;
-
-    // Si en train d'attaquer, on bloque les autres animations (pas le mouvement)
-    const animLocked = isAttacking;
+    const onGround = player.body.blocked.down;
 
     // --- GAUCHE / DROITE ---
     if (cursors.left.isDown) {
         player.setVelocityX(-270);
         player.flipX = true;
-        if (!animLocked) {
-            if (onGround) player.anims.play('run', true);
+        if (!isAttacking && onGround) {
+            player.anims.play('run', true);
         }
     }
     else if (cursors.right.isDown) {
         player.setVelocityX(270);
         player.flipX = false;
-        if (!animLocked) {
-            if (onGround) player.anims.play('run', true);
+        if (!isAttacking && onGround) {
+            player.anims.play('run', true);
         }
     }
     else {
         player.setVelocityX(0);
-        if (!animLocked && onGround) {
+        if (!isAttacking && onGround) {
             player.anims.play('idle', true);
         }
     }
 
     // --- SAUT ---
-    if (cursors.up.isDown && canJump) {
+    if (cursors.up.isDown && onGround) {
         player.setVelocityY(-650);
-        if (!animLocked) {
+        if (!isAttacking) {
             player.anims.play('jump', true);
         }
     }
 
     // --- ANIMATION EN L'AIR ---
-    if (!onGround && !animLocked) {
+    if (!onGround && !isAttacking) {
         player.anims.play('jump', true);
     }
 }
