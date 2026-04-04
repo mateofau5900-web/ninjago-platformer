@@ -72,7 +72,10 @@ function create() {
     platforms = this.physics.add.staticGroup();
 
     // SOL : zone physique bien calée
-    addGround(this, MAP_WIDTH / 2, GROUND_Y, MAP_WIDTH, GROUND_H, 0x881100);
+    // Sol en 6 morceaux de 400px au lieu d'un seul de 2400px
+    for (let i = 0; i < 6; i++) {
+    addGround(this, 200 + i * 400, GROUND_Y, 400, GROUND_H, 0x881100);
+}
 
     // Plateformes aériennes
     // Chaque plateforme : Y visuel, largeur
