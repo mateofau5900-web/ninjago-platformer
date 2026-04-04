@@ -25,9 +25,16 @@ let isAttacking = false;
 //      PRELOAD
 // =====================
 function preload() {
+    // Kai : 452x552px, 4 col x 5 lignes = 113x110 par frame
     this.load.spritesheet('kai', 'assets/kai.png', {
         frameWidth: 113,
         frameHeight: 110
+    });
+
+    // Garmadon : 452x560px, 4 col x 5 lignes = 113x112 par frame
+    this.load.spritesheet('garmadon', 'assets/garmadon.png', {
+        frameWidth: 113,
+        frameHeight: 112
     });
 }
 
@@ -39,14 +46,12 @@ function create() {
     const MAP_WIDTH  = 2400;
     const MAP_HEIGHT = 600;
 
-    // ---- FOND (1 seul graphics pour tout) ----
+    // ---- FOND ----
     let bg = this.add.graphics();
-
-    // Dégradé ciel
     bg.fillGradientStyle(0x0d1b2a, 0x0d1b2a, 0x1b3a5c, 0x1b3a5c, 1);
     bg.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-    // Étoiles : réduit à 60, dessinées en 1 seul appel graphics
+    // Étoiles (60, en 1 seul graphics)
     for (let i = 0; i < 60; i++) {
         let x = Phaser.Math.Between(0, MAP_WIDTH);
         let y = Phaser.Math.Between(0, 480);
@@ -54,32 +59,31 @@ function create() {
         bg.fillStyle(0xffffff, Phaser.Math.FloatBetween(0.3, 0.9));
         bg.fillRect(x, y, s, s);
     }
+    bg.setScrollFactor(0.25);
 
-    bg.setScrollFactor(0.25); // parallax léger
-
-    // Lune (2 cercles fixes, scroll lent)
+    // Lune
     this.add.circle(680, 70, 42, 0xfff5cc, 0.95).setScrollFactor(0.1);
     this.add.circle(697, 58, 39, 0x1b3a5c, 1).setScrollFactor(0.1);
 
     // ---- PLATEFORMES ----
     platforms = this.physics.add.staticGroup();
 
-    // SOL COMPLET 2400px — 1 seul rectangle
+    // SOL 2400px
     makePlatform(this, 1200, 558, 2400, 44, 0x881100);
 
-    // ZONE 1 (x: 0→800)
+    // ZONE 1 (0 → 800)
     makePlatform(this, 150,  455, 160, 18, 0xaa2200);
     makePlatform(this, 380,  365, 160, 18, 0xaa2200);
     makePlatform(this, 600,  275, 160, 18, 0xaa2200);
 
-    // ZONE 2 (x: 800→1600)
+    // ZONE 2 (800 → 1600)
     makePlatform(this, 870,  455, 160, 18, 0xaa2200);
     makePlatform(this, 1060, 370, 180, 18, 0xaa2200);
     makePlatform(this, 1260, 285, 160, 18, 0xaa2200);
     makePlatform(this, 1430, 205, 160, 18, 0xaa2200);
     makePlatform(this, 1570, 340, 150, 18, 0xaa2200);
 
-    // ZONE 3 (x: 1600→2400)
+    // ZONE 3 (1600 → 2400)
     makePlatform(this, 1700, 455, 160, 18, 0xaa2200);
     makePlatform(this, 1880, 355, 180, 18, 0xaa2200);
     makePlatform(this, 2070, 265, 160, 18, 0xaa2200);
@@ -89,9 +93,7 @@ function create() {
     // ---- PIÈCES ----
     coins = this.physics.add.staticGroup();
 
-    // 1 seul graphics pour toutes les pièces = très rapide
-    let coinGfx = this.add.graphics();
-    coinGfx.setDepth(6);
+    let coinGfx = this.add.graphics().setDepth(6);
 
     const coinPositions = [
         {x:150,y:420},{x:380,y:330},{x:600,y:240},
@@ -110,7 +112,6 @@ function create() {
         coinGfx.fillStyle(0xffee88, 0.7);
         coinGfx.fillCircle(pos.x - 2, pos.y - 2, 4);
 
-        // Zone de collision invisible
         let zone = this.add.zone(pos.x, pos.y, 18, 18);
         this.physics.add.existing(zone, true);
         zone.coinGfxRef = coinGfx;
@@ -119,46 +120,34 @@ function create() {
         coins.add(zone);
     });
 
-    // ---- ENNEMIS (physique correcte) ----
+    // ---- ENNEMIS (Garmadon) ----
     enemies = this.physics.add.group();
 
-    // Chaque ennemi a sa propre position Y calée sur le sol ou une plateforme
     const enemyData = [
         // Sur le sol
-        { x: 420,  y: 520, minX: 310,  maxX: 560,  speed: 90  },
-        { x: 930,  y: 520, minX: 840,  maxX: 1050, speed: 100 },
-        { x: 1330, y: 520, minX: 1200, maxX: 1500, speed: 95  },
-        { x: 1760, y: 520, minX: 1640, maxX: 1870, speed: 105 },
-        { x: 2130, y: 520, minX: 2010, maxX: 2310, speed: 115 },
+        { x: 420,  y: 510, minX: 310,  maxX: 560,  speed: 80  },
+        { x: 930,  y: 510, minX: 840,  maxX: 1050, speed: 90  },
+        { x: 1330, y: 510, minX: 1200, maxX: 1500, speed: 85  },
+        { x: 1760, y: 510, minX: 1640, maxX: 1870, speed: 95  },
+        { x: 2130, y: 510, minX: 2010, maxX: 2310, speed: 100 },
         // Sur plateformes
-        { x: 1080, y: 340, minX: 990,  maxX: 1200, speed: 110 },
-        { x: 1900, y: 325, minX: 1820, maxX: 2010, speed: 125 },
-        { x: 2230, y: 145, minX: 2155, maxX: 2355, speed: 140 },
+        { x: 1080, y: 335, minX: 990,  maxX: 1200, speed: 100 },
+        { x: 1900, y: 320, minX: 1820, maxX: 2010, speed: 115 },
+        { x: 2230, y: 140, minX: 2155, maxX: 2355, speed: 130 },
     ];
 
     enemyData.forEach(data => {
-        // Sprite ennemi simple (rectangle violet foncé)
-        let enemy = this.add.rectangle(data.x, data.y, 34, 44, 0x330099);
-        this.physics.add.existing(enemy, false);
-
-        // Physique : gravité normale, rebond sur les murs du monde
+        let enemy = this.physics.add.sprite(data.x, data.y, 'garmadon', 0);
+        enemy.setScale(0.85);
         enemy.body.setCollideWorldBounds(true);
-        enemy.body.setGravityY(0); // la gravité globale s'applique déjà
         enemy.body.setMaxVelocityY(600);
-
+        enemy.body.setSize(70, 90); // hitbox ajustée
         enemy.setDepth(5);
         enemy.minX  = data.minX;
         enemy.maxX  = data.maxX;
         enemy.speed = data.speed;
         enemy.body.setVelocityX(enemy.speed);
-
-        // Yeux rouges
-        let eyeGfx = this.add.graphics().setDepth(6);
-        eyeGfx.fillStyle(0xff2200, 1);
-        eyeGfx.fillCircle(data.x - 6, data.y - 10, 4);
-        eyeGfx.fillCircle(data.x + 6, data.y - 10, 4);
-        enemy.eyeGfx = eyeGfx;
-
+        enemy.anims.play('garmadon_walk', true);
         enemies.add(enemy);
     });
 
@@ -168,7 +157,7 @@ function create() {
     player.setCollideWorldBounds(true);
     player.setDepth(10);
 
-    // ---- ANIMATIONS ----
+    // ---- ANIMATIONS KAI ----
     this.anims.create({
         key: 'idle',
         frames: [{ key: 'kai', frame: 0 }],
@@ -191,6 +180,23 @@ function create() {
     });
     player.on('animationcomplete-spin', () => { isAttacking = false; });
 
+    // ---- ANIMATIONS GARMADON ----
+    this.anims.create({
+        key: 'garmadon_idle',
+        frames: [{ key: 'garmadon', frame: 0 }],
+        frameRate: 1, repeat: -1
+    });
+    this.anims.create({
+        key: 'garmadon_walk',
+        frames: this.anims.generateFrameNumbers('garmadon', { start: 4, end: 7 }),
+        frameRate: 8, repeat: -1
+    });
+    this.anims.create({
+        key: 'garmadon_attack',
+        frames: this.anims.generateFrameNumbers('garmadon', { start: 8, end: 11 }),
+        frameRate: 10, repeat: 0
+    });
+
     // ---- COLLISIONS ----
     this.physics.add.collider(player,  platforms);
     this.physics.add.collider(enemies, platforms);
@@ -207,14 +213,14 @@ function create() {
     this.input.keyboard.on('keydown-Z',     doSpin, this);
     this.input.keyboard.on('keydown-SPACE', doSpin, this);
 
-    // ---- UI (setScrollFactor 0 = fixe à l'écran) ----
+    // ---- UI ----
     this.add.text(14, 10, 'NINJAGO PLATFORMER', {
         fontSize: '17px', fill: '#ff4400',
         fontFamily: 'Georgia, serif', fontStyle: 'bold',
         stroke: '#000', strokeThickness: 3
     }).setScrollFactor(0).setDepth(30);
 
-    this.add.text(14, 35, '← → Courir   ↑ Sauter   Z Spin !   Saute sur les ennemis !', {
+    this.add.text(14, 35, '← → Courir   ↑ Sauter   Z Spin !   Saute sur Garmadon !', {
         fontSize: '11px', fill: '#aaccff',
         fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
     }).setScrollFactor(0).setDepth(30);
@@ -224,7 +230,7 @@ function create() {
         fontFamily: 'Arial', stroke: '#000', strokeThickness: 3
     }).setScrollFactor(0).setDepth(30);
 
-    this.add.text(14, 78, '🪙 +10 pièce   👾 +50 ennemi écrasé', {
+    this.add.text(14, 78, '🪙 +10 pièce   💀 +50 Garmadon écrasé', {
         fontSize: '10px', fill: '#88ccaa',
         fontFamily: 'Arial', stroke: '#000', strokeThickness: 2
     }).setScrollFactor(0).setDepth(30);
@@ -238,10 +244,8 @@ function makePlatform(scene, x, y, w, h, color) {
     scene.physics.add.existing(rect, true);
     platforms.add(rect);
 
-    // Bordure sombre en bas
     scene.add.rectangle(x, y + h / 2 + 3, w, 5, 0x330000).setDepth(0);
 
-    // Picots : 1 seul graphics par plateforme
     let g = scene.add.graphics().setDepth(2);
     g.fillStyle(color, 1);
     let nb = Math.floor(w / 22);
@@ -256,10 +260,8 @@ function makePlatform(scene, x, y, w, h, color) {
 //   COLLECTER PIÈCE
 // =====================
 function collectCoin(player, zone) {
-    // Efface visuellement le cercle doré
     zone.coinGfxRef.fillStyle(0x000000, 0);
-    zone.coinGfxRef.fillCircle(zone.posX, zone.posY, 10);
-
+    zone.coinGfxRef.fillCircle(zone.posX, zone.posY, 11);
     zone.destroy();
     score += 10;
     scoreText.setText('⭐ Score : ' + score);
@@ -271,9 +273,8 @@ function collectCoin(player, zone) {
 //   TOUCHER ENNEMI
 // =====================
 function hitEnemy(player, enemy) {
-    if (player.body.velocity.y > 50 && player.y < enemy.y - 15) {
-        // Sauter dessus = tuer
-        if (enemy.eyeGfx) enemy.eyeGfx.destroy();
+    if (player.body.velocity.y > 50 && player.y < enemy.y - 20) {
+        // Sauter dessus = tuer Garmadon
         enemy.destroy();
         player.setVelocityY(-480);
         score += 50;
@@ -281,12 +282,14 @@ function hitEnemy(player, enemy) {
         scoreText.setStyle({ fill: '#00ff88' });
         this.time.delayedCall(200, () => scoreText.setStyle({ fill: '#ffd700' }));
     } else {
-        // Recul
+        // Recul de Kai
         let dir = player.x < enemy.x ? -1 : 1;
         player.setVelocityX(dir * 380);
         player.setVelocityY(-320);
         score = Math.max(0, score - 5);
         scoreText.setText('⭐ Score : ' + score);
+        scoreText.setStyle({ fill: '#ff4444' });
+        this.time.delayedCall(200, () => scoreText.setStyle({ fill: '#ffd700' }));
     }
 }
 
@@ -306,21 +309,23 @@ function doSpin() {
 function update() {
     const onGround = player.body.blocked.down;
 
-    // Patrouille ennemis + mise à jour yeux
+    // Patrouille Garmadon
     enemies.children.entries.forEach(enemy => {
         if (!enemy.active || !enemy.body) return;
+
         if (enemy.x >= enemy.maxX) {
             enemy.body.setVelocityX(-enemy.speed);
+            enemy.flipX = true;
         } else if (enemy.x <= enemy.minX) {
             enemy.body.setVelocityX(enemy.speed);
+            enemy.flipX = false;
         }
-        // Déplace les yeux avec l'ennemi
-        if (enemy.eyeGfx) {
-            enemy.eyeGfx.x = enemy.x - enemy.body.x;
-        }
+
+        // Animation marche
+        enemy.anims.play('garmadon_walk', true);
     });
 
-    // Mouvement joueur
+    // Mouvement Kai
     if (cursors.left.isDown) {
         player.setVelocityX(-270);
         player.flipX = true;
