@@ -42,13 +42,9 @@ function create() {
 
     const MAP_WIDTH  = 2400;
     const MAP_HEIGHT = 600;
-
-    // Le sol sera à Y=560, hauteur 40px
-    // Donc surface du sol = Y = 560 - 20 = 540
-    // Kai (hauteur ~120px avec scale 1.1) → spawn Y = 540 - 60 = 480
-    const GROUND_Y    = 560;
-    const GROUND_H    = 40;
-    const SURFACE_Y   = GROUND_Y - GROUND_H / 2; // = 540
+    const GROUND_Y   = 560;
+    const GROUND_H   = 40;
+    const PH         = 18; // hauteur plateformes
 
     // ---- FOND ----
     let bg = this.add.graphics();
@@ -67,20 +63,12 @@ function create() {
     this.add.circle(697, 58, 39, 0x1b3a5c, 1).setScrollFactor(0.1);
 
     // ---- PLATEFORMES ----
-    // On utilise des zones invisibles pour la physique
-    // + des rectangles visuels décalés pour que ça colle parfaitement
     platforms = this.physics.add.staticGroup();
 
-    // SOL : zone physique bien calée
-    // Sol en 6 morceaux de 400px au lieu d'un seul de 2400px
+    // SOL : 6 morceaux de 400px pour éviter le mur invisible
     for (let i = 0; i < 6; i++) {
-    addGround(this, 200 + i * 400, GROUND_Y, 400, GROUND_H, 0x881100);
-}
-
-    // Plateformes aériennes
-    // Chaque plateforme : Y visuel, largeur
-    // La surface de collision = Y - H/2 = Y - 9
-    const PH = 18; // hauteur plateforme
+        addGround(this, 200 + i * 400, GROUND_Y, 400, GROUND_H, 0x881100);
+    }
 
     // ZONE 1
     addGround(this, 150,  420, 160, PH, 0xaa2200);
@@ -132,20 +120,15 @@ function create() {
     // ---- ENNEMIS GARMADON ----
     enemies = this.physics.add.group();
 
-    // Y de spawn = surface de la plateforme - moitié hauteur garmadon
-    // Garmadon scale 0.85 → hauteur réelle ~95px → moitié = 47
-    // Sur sol (surface=540) → Y spawn = 540 - 47 = 493
-    // Sur plateforme Y=420 (surface=411) → Y spawn = 411 - 47 = 364
-
     const enemyData = [
-        { x: 420,  y: 493, minX: 310,  maxX: 560,  speed: 80  }, // sol
-        { x: 930,  y: 493, minX: 840,  maxX: 1050, speed: 90  }, // sol
-        { x: 1330, y: 493, minX: 1200, maxX: 1500, speed: 85  }, // sol
-        { x: 1760, y: 493, minX: 1640, maxX: 1870, speed: 95  }, // sol
-        { x: 2130, y: 493, minX: 2010, maxX: 2310, speed: 100 }, // sol
-        { x: 1080, y: 293, minX: 990,  maxX: 1200, speed: 100 }, // plateforme Y=340
-        { x: 1900, y: 278, minX: 1820, maxX: 2010, speed: 115 }, // plateforme Y=325
-        { x: 2230, y: 98,  minX: 2155, maxX: 2355, speed: 130 }, // plateforme Y=145
+        { x: 420,  y: 493, minX: 310,  maxX: 560,  speed: 80  },
+        { x: 930,  y: 493, minX: 840,  maxX: 1050, speed: 90  },
+        { x: 1330, y: 493, minX: 1200, maxX: 1500, speed: 85  },
+        { x: 1760, y: 493, minX: 1640, maxX: 1870, speed: 95  },
+        { x: 2130, y: 493, minX: 2010, maxX: 2310, speed: 100 },
+        { x: 1080, y: 293, minX: 990,  maxX: 1200, speed: 100 },
+        { x: 1900, y: 278, minX: 1820, maxX: 2010, speed: 115 },
+        { x: 2230, y: 98,  minX: 2155, maxX: 2355, speed: 130 },
     ];
 
     enemyData.forEach(data => {
@@ -153,7 +136,6 @@ function create() {
         enemy.setScale(0.85);
         enemy.body.setCollideWorldBounds(true);
         enemy.body.setMaxVelocityY(900);
-        // Hitbox réduite centrée sur le corps
         enemy.body.setSize(60, 85);
         enemy.body.setOffset(26, 15);
         enemy.setDepth(5);
@@ -165,13 +147,10 @@ function create() {
     });
 
     // ---- JOUEUR KAI ----
-    // Surface sol = 540, Kai hauteur réelle ~121px (110 * 1.1), moitié = 60
-    // Spawn Y = 540 - 60 = 480
     player = this.physics.add.sprite(100, 480, 'kai', 0);
     player.setScale(1.1);
     player.setCollideWorldBounds(true);
     player.setDepth(10);
-    // Hitbox Kai ajustée
     player.body.setSize(60, 90);
     player.body.setOffset(26, 15);
 
@@ -253,10 +232,10 @@ function create() {
 //  HELPER : SOL/PLATEFORME
 // ========================
 function addGround(scene, x, y, w, h, color) {
-    // Rectangle visuel
-    let vis = scene.add.rectangle(x, y, w, h, color).setDepth(3);
+    // Visuel
+    scene.add.rectangle(x, y, w, h, color).setDepth(3);
 
-    // Picots Lego
+    // Picots
     let g = scene.add.graphics().setDepth(4);
     g.fillStyle(color, 1);
     let nb = Math.floor(w / 22);
@@ -265,10 +244,10 @@ function addGround(scene, x, y, w, h, color) {
         g.fillRoundedRect(sx + i * 22 - 5, y - h / 2 - 6, 9, 6, 2);
     }
 
-    // Ombre bas
+    // Ombre
     scene.add.rectangle(x, y + h / 2 + 3, w, 5, 0x330000).setDepth(2);
 
-    // Corps physique EXACTEMENT sur le rectangle visuel
+    // Corps physique invisible (même position exacte)
     let body = scene.add.rectangle(x, y, w, h);
     body.setVisible(false);
     scene.physics.add.existing(body, true);
